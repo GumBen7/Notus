@@ -1,5 +1,14 @@
 #include "mainwindow.h"
+#include "qt6keychain/keychain.h"
 #include "ui_mainwindow.h"
+
+#include <QNetworkProxy>
+
+constexpr int kHttpOk = 200;
+constexpr auto kUserAgentHeader = "Qt App";
+constexpr auto kBlockedResponseSubstring = "The requested URL was rejected";
+inline const QString kHttpsScheme = "https://";
+inline const QString kDataspaceHostname = "dataspace.copernicus.eu";
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -19,27 +28,28 @@ MainWindow::~MainWindow()
 
 void MainWindow::checkDataspaceAvailability()
 {
-    QUrl url("https://dataspace.copernicus.eu"); //"https://identity.dataspace.copernicus.eu");
+    QUrl url(kHttpsScheme + kDataspaceHostname);
     QNetworkRequest request(url);
-    request.setHeader(QNetworkRequest::UserAgentHeader, "Qt App");
+    request.setHeader(QNetworkRequest::UserAgentHeader, kUserAgentHeader);
     networkManager->get(request);
 }
 
 void MainWindow::dataspaceReplyFinished(QNetworkReply *reply)
 {
     int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-    QString responseBody = reply->readAll();
-    QPalette palette = ui->dataspaceStatusLabel->palette();
+    auto responseBody = reply->readAll();
+    auto palette = ui->dataspaceStatusLabel->palette();
     if (reply->error() == QNetworkReply::NoError) {
-        if (httpStatus == 200 && responseBody.contains("The requested URL was rejected")) {
-            ui->dataspaceStatusLabel->setText("dataspace.copernicus.eu: Доступ ограничен");
-            palette.setColor(QPalette::WindowText, QColor(255, 165, 0));
+        if (httpStatus == kHttpOk && responseBody.contains(kBlockedResponseSubstring)) {
+            ui->dataspaceStatusLabel->setText(kDataspaceHostname + ": Доступ ограничен");
+            palette.setColor(QPalette::WindowText, Qt::yellow);
         } else {
-            ui->dataspaceStatusLabel->setText("dataspace.copernicus.eu: Доступен");
+            ui->dataspaceStatusLabel->setText(kDataspaceHostname + ": Доступен");
             palette.setColor(QPalette::WindowText, Qt::green);
+            loadAccessToken();
         }
     } else {
-        ui->dataspaceStatusLabel->setText("dataspace.copernicus.eu: Недоступен ("
+        ui->dataspaceStatusLabel->setText(kDataspaceHostname + ": Недоступен ("
                                           + reply->errorString() + ")");
         palette.setColor(QPalette::WindowText, Qt::red);
     }
@@ -48,11 +58,28 @@ void MainWindow::dataspaceReplyFinished(QNetworkReply *reply)
     reply->deleteLater();
 }
 
+void MainWindow::loadAccessToken()
+{
+    /* TODO(GumBen7): implement loading from keychain  using namespace QKeychain;
+    auto job = new QKeychain::ReadPasswordJob(QCoreApplication::applicationName(), this);
+    job->setKey("access_token");
+    connect(job, &QKeychain::Job::finished, this, [=]() {
+        if (job->error()) {
+            qDebug() << "Token not found in keychain, requesting login...";
+        } else {
+            QString token = job->textData();
+            qDebug() << "Access token loaded from keychain:" << token;
+        }
+    });
+    job->start();*/
+}
+
 void MainWindow::configureProxy()
 {
+    QSettings settings;
     QNetworkProxy proxy;
     proxy.setType(QNetworkProxy::HttpProxy);
-    proxy.setHostName("54.37.207.54");
-    proxy.setPort(3128);
+    proxy.setHostName(settings.value("Proxy/host").toString());
+    proxy.setPort(settings.value("Proxy/port").toInt());
     QNetworkProxy::setApplicationProxy(proxy);
 }

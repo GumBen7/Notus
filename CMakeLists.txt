@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.19)
 project(Notus LANGUAGES CXX)
 
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets LinguistTools Network)
+find_library(QTKEYCHAIN_LIBRARY NAMES Qt6Keychain PATHS "C:/Qt/Tools/QtKeychain/lib")
 
 qt_standard_project_setup()
 
@@ -20,12 +21,14 @@ qt_add_translations(
 
 target_link_libraries(Notus
     PRIVATE
+        ${QTKEYCHAIN_LIBRARY}
         Qt::Core
         Qt::Widgets
         Qt::Network
 )
 
 include(GNUInstallDirs)
+include_directories("C:/Qt/Tools/QtKeychain/include")
 
 install(TARGETS Notus
     BUNDLE  DESTINATION .

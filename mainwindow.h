@@ -4,8 +4,8 @@
 #include <QLabel>
 #include <QMainWindow>
 #include <QNetworkAccessManager>
-#include <QNetworkProxy>
 #include <QNetworkReply>
+#include <QSettings>
 #include <QTimer>
 
 QT_BEGIN_NAMESPACE
@@ -19,17 +19,19 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
 private:
-    Ui::MainWindow *ui;
-    // QLabel *accessTokenStatusLabel;
-    // QTimer *checkTimer;
-    // void updateAccessTokenStatus();
-    QNetworkAccessManager *networkManager;
+    void updateAccessTokenStatus();
     void checkDataspaceAvailability();
     void dataspaceReplyFinished(QNetworkReply *reply);
+    void loadAccessToken();
     void configureProxy();
+
+    Ui::MainWindow *ui;
+    QLabel *accessTokenStatusLabel;
+    QTimer *checkTimer;
+    QNetworkAccessManager *networkManager;
 };
 #endif // MAINWINDOW_H
