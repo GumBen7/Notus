@@ -25,6 +25,7 @@ target_link_libraries(Notus
         Qt::Core
         Qt::Widgets
         Qt::Network
+        crypt32
 )
 
 include(GNUInstallDirs)
