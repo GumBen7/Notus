@@ -11,8 +11,9 @@
 #include <QProcess>
 
 constexpr int kHttpOk = 200;
-constexpr auto kUserAgentHeader = "Qt App";
+constexpr auto kUserAgentHeader = "Notus/1.0 (Qt 6.x)";
 constexpr auto kBlockedResponseSubstring = "The requested URL was rejected";
+constexpr auto kTokenKeyName = "CopernicusAccessToken";
 inline const QString kHttpsScheme = "https://";
 inline const QString kDataspaceHostname = "dataspace.copernicus.eu";
 
@@ -67,7 +68,7 @@ void MainWindow::dataspaceReplyFinished(QNetworkReply *reply)
 void MainWindow::loadAccessToken()
 {
     auto job = new QKeychain::ReadPasswordJob(QCoreApplication::applicationName(), this);
-    job->setKey("CopernicusAccessToken");
+    job->setKey(kTokenKeyName);
     connect(job, &QKeychain::Job::finished, this, [=]() {
         if (job->error()) {
             qDebug() << "Token not found in keychain, requesting login...";
@@ -82,10 +83,6 @@ void MainWindow::loadAccessToken()
 
 void MainWindow::promptUserCredentialsAndRequestToken()
 {
-    QProcess which;
-    which.start("where", QStringList() << "curl");
-    which.waitForFinished();
-    qDebug() << "curl path:" << which.readAllStandardOutput();
     QProcess curl;
     curl.start("curl",
                QStringList() << "-s" << "-X" << "POST"
@@ -115,8 +112,8 @@ void MainWindow::promptUserCredentialsAndRequestToken()
             // Сохрани accessToken в QtKeychain или куда нужно
 
             QKeychain::WritePasswordJob *job = new QKeychain::WritePasswordJob(
-                "Notus");                         // имя сервиса, можно любое
-            job->setKey("CopernicusAccessToken"); // ключ, под которым сохраняется
+                QCoreApplication::applicationName());
+            job->setKey(kTokenKeyName);
             job->setTextData(accessToken);
             connect(job, &QKeychain::WritePasswordJob::finished, this, [job]() {
                 if (job->error()) {
@@ -133,75 +130,6 @@ void MainWindow::promptUserCredentialsAndRequestToken()
     } else {
         qWarning() << "JSON parsing failed:" << parseError.errorString();
     }
-
-    // const QString username
-    //     = "gumben7@gmail.com"; //QInputDialog::getText(this, "Copernicus Login", "Username:");
-    // const QString password = "vhR5DT!rpw8Bb.f";
-    // // = QInputDialog::getText(this, "Copernicus Password", "Password:", QLineEdit::Password);
-    // if (username.isEmpty() || password.isEmpty()) {
-    //     qWarning() << "Username or password was empty, aborting token request.";
-    //     return;
-    // }
-
-    // Подготовка данных
-    // QByteArray postData;
-    // postData.append("username=").append(QUrl::toPercentEncoding(username));
-    // postData.append("&password=").append(QUrl::toPercentEncoding(password));
-    // postData.append("&grant_type=password");
-    // postData.append("&client_id=cdse-public");
-
-    // QUrl url(
-    //     "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token");
-    // QNetworkRequest request(url);
-
-    // // МАКСИМАЛЬНО точно копируем curl-заголовки
-    // request.setRawHeader("Host", "identity.dataspace.copernicus.eu");
-    // request.setRawHeader("User-Agent", "curl/8.11.1");
-    // request.setRawHeader("Accept", "*/*");
-    // request.setRawHeader("Content-Type", "application/x-www-form-urlencoded");
-    // request.setRawHeader("Content-Length", QByteArray::number(postData.size()));
-    // request.setAttribute(QNetworkRequest::Http2AllowedAttribute, false);
-
-    // qDebug() << "Sending POST to" << url;
-    // qDebug() << "Payload:" << postData;
-
-    // QNetworkReply *reply = networkManager->post(request, postData);
-
-    // connect(reply, &QNetworkReply::finished, this, [=]() {
-    //     QVariant statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
-    //     if (statusCode.isValid()) {
-    //         qDebug() << "HTTP Status Code:" << statusCode.toInt();
-    //     }
-    //     qDebug() << "Raw headers:";
-    //     const auto headers = reply->rawHeaderPairs();
-    //     for (const auto &pair : headers) {
-    //         qDebug() << pair.first << ":" << pair.second;
-    //     }
-    //     QByteArray responseData = reply->readAll();
-    //     qDebug() << "Reply error:" << reply->errorString();
-    //     qDebug() << "Full reply:" << responseData;
-
-    //     if (reply->error() == QNetworkReply::NoError) {
-    //         QJsonParseError parseError;
-    //         QJsonDocument jsonResponse = QJsonDocument::fromJson(responseData, &parseError);
-    //         if (parseError.error == QJsonParseError::NoError) {
-    //             QJsonObject responseObject = jsonResponse.object();
-    //             QString accessToken = responseObject.value("access_token").toString();
-    //             if (!accessToken.isEmpty()) {
-    //                 qDebug() << "Access Token:" << accessToken;
-    //                 // тут можно сохранить
-    //             } else {
-    //                 qWarning() << "No access_token in response.";
-    //             }
-    //         } else {
-    //             qWarning() << "JSON Parse Error:" << parseError.errorString();
-    //         }
-    //     } else {
-    //         qWarning() << "Token request failed:" << reply->errorString();
-    //     }
-
-    //     reply->deleteLater();
-    // });
 }
 
 void MainWindow::configureProxy()
@@ -212,5 +140,5 @@ void MainWindow::configureProxy()
     proxy.setType(QNetworkProxy::HttpProxy);
     proxy.setHostName(settings.value("Proxy/host").toString());
     proxy.setPort(settings.value("Proxy/port").toInt());
-    QNetworkProxy::setApplicationProxy(proxy); //(QNetworkProxy::NoProxy); //
+    QNetworkProxy::setApplicationProxy(proxy);
 }
