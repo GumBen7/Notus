@@ -28,6 +28,7 @@ private:
     void dataspaceReplyFinished(QNetworkReply *reply);
     void loadAccessToken();
     void configureProxy();
+    void promptUserCredentialsAndRequestToken();
 
     Ui::MainWindow *ui;
     QLabel *accessTokenStatusLabel;
